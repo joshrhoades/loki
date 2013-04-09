@@ -15,6 +15,7 @@ loki.refs = {
 		, logExit: "\n"
 	}	
 };
+loki.refs.debugMode = false;
 //logs
 loki.refs.logs = loki.refs.logs || {};
 loki.refs.logs.info = loki.refs.logs.info || [];
