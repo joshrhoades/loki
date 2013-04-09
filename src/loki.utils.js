@@ -280,6 +280,7 @@ fTest(e, args) // e = event...; args = {name:"addam", age:"33"}
 				};
 			})(args), false); // args for the event itself
 		}
+		loki.refs.additions.listeners.push({ theObject: obj, theType: type, theFn: fn, theArgs: args  });
 		return obj;
 	}
 /**
