@@ -227,12 +227,157 @@ var localContext = {
 	, strTruth = loki.utils.getQueryString('test',localContext);//returns 'truethify'
 ;
 */
-        , getQueryString : function(strKey, theContext) {
-        	var theContext	= theContext || window
-        		, arrSearch	= theContext.location.search.split(strKey + '=')[1]
-        	;
-        	return arrSearch ? decodeURIComponent(arrSearch.split('&')[0]) : false;
-        }
+    , getQueryString : function(strKey, theContext) {
+    	var theContext	= theContext || window
+    		, arrSearch	= theContext.location.search.split(strKey + '=')[1]
+    	;
+    	return arrSearch ? decodeURIComponent(arrSearch.split('&')[0]) : false;
+    }
+/**
+	* Adapted from John Resig's cross-browser function for adding an eventListener to an element.
+	* @name addEvent
+	* @author John Resig
+	* @param {object} obj The object the eventListener is being attached to.
+	* @param {string} type The type of event to listen for.
+	* @param {function} fn The callback function that should be triggered when the event occurs.
+	* @param {object or string} container Paramaters to pass to your function when the event is fired.  Could be an object or string.
+	* @example
+loki.utils.addEvent(handle, "click", fTest, {name:"addam", age:"33"})
+// calls the function "fTest" like this:
+fTest(e, args) // e = event...; args = {name:"addam", age:"33"}
+	* @method
+	* @memberof loki.utils
+	* @see {@link http://ejohn.org/projects/flexible-javascript-events/}
+	* @see {@link loki.utils.removeEvent }
+*/
+	, addEvent: function (obj, type, fn, args) {
+		var args = args || false; // to allow arguements to be passed forward
+		//Supports attachEvent (i.e. IE), pass the captured event to the callback when triggered.
+		if (obj.attachEvent) {
+			obj['e'+type+fn] = fn;
+			obj[type+fn] = function() {
+				var evt = window.event;
+				//Add in the preventDefault function on the event object, for IE compatibility
+				if (typeof(evt.preventDefault) != "function") {
+					evt.preventDefault = function() { this.returnValue = false; };
+				}
+				obj['e'+type+fn](evt);
+			};
+			obj.attachEvent('on'+type,  (function(args) {
+				return function(e){
+					//e.stopPropagation();
+					e.returnValue = false;
+					obj[type+fn(e, args)]
+				};
+			})(args), false);
+		} else {
+			/* Use the standard method. */
+			obj.addEventListener(type, (function(args){ // function with arguement
+				return function(e){ // return with event
+					e.stopPropagation();
+					e.preventDefault()	
+					fn(e, args) // pass event & arguements to function
+				};
+			})(args), false); // args for the event itself
+		}
+		return obj;
+	}
+/**
+	* John Resig's cross-browser function for removing an eventListener from an element.
+	* @name removeEvent
+	* @author John Resig
+	* @param {object} obj The object the eventListener is being removed from.
+	* @param {string} type The type of event being listened for.
+	* @param {function} fn The callback function that's being triggered when the event occurs.
+	* @method
+	* @memberof loki.utils
+	* @see {@link http://ejohn.org/projects/flexible-javascript-events/}
+	* @see {@link loki.utils.addEvent }
+*/
+	, removeEvent: function (obj, type, fn) {	
+		if (obj.detachEvent) {
+			if (obj[type + fn]) {
+				obj.detachEvent('on' + type, obj[type + fn]);
+				obj[type+fn] = null;
+			} else {
+				obj.detachEvent('on' + type);
+			}
+		} else {
+			/* Use the standard method. */
+			obj.removeEventListener(type, fn, false);
+		}
+	}
+/**
+	* A global utility, that FE will use to queue up functions to be run on document ready.
+	* This method will be easier to debug, and more maintainable than a bunch of $(document).ready - type calls.
+	* @name readyQueue
+	* @author Josh Rhoades <joshua.rhoades@gmail.com>
+	* @version 0.0.2
+	* @since 0.0.1
+	* @added 4/8/13
+	* @param {object} options The passed set of parameters
+	* @returns {object} What's being returned
+	* @example loki.utils.readyQueue.add({fn:function(){ loki.core.register("BLS-Notification", BLS.core.serviceCall, {analytics:false})}});
+	* @example loki.utils.readyQueue.add({fn:function(){ loki.core.startAll()}});
+	* @example loki.utils.readyQueue.add({ fn:loki.apps.sessionTimer().init() });
+	* @method
+	* @memberof loki.utils
+*/
+	, readyQueue : (function(document, undefined) {
+		var mAPI			= {}
+			, bAlreadyRun	= false
+			, mQueue		= []
+		;
+	
+		function add(options) {
+			options = options || {};
+			if (typeof(options.fn) != "function") {
+				return;
+			}
+			if (bAlreadyRun === true) {
+				runFunction(options);
+			} else {
+				mQueue.push(options);
+			}
+		}
+		mAPI.add = add;
+		function runFunction(options) {
+			try {
+				options["fn"]();
+			} catch(err) {
+				this.utils.doLogging(err, 2);
+			}
+		}
+		function onReady() {
+			var nLength = mQueue.length;
+			if (bAlreadyRun === true) {
+				return;
+			}
+			for (var i = 0, numItems = nLength; i < numItems; i++) {
+				runFunction(mQueue[i]);
+			}
+			bAlreadyRun = true;
+		}
+	
+		/* Document Ready Binding */
+		if (document.addEventListener) {
+			document.addEventListener("DOMContentLoaded", onReady, false);
+		} else {
+			if (window.addEventListener) {
+				window.addEventListener("load", onReady, false);
+			} else {
+				if (window.attachEvent) {
+					window.attachEvent("onload", onReady);
+				} else {
+					if (document.getElementById) {
+						window.onload = onReady();
+					}
+				}
+			}
+		}
+		return mAPI;
+	})(document)
+//end util public functions
 };
 //fire status
 loki.componentAvailable('utils');
